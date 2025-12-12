@@ -1,0 +1,18 @@
+roles:
+  admin:
+    prefix: "&c[Admin] "
+    permissions:
+      - "*"
+  vip:
+    prefix: "&6[VIP] "
+    permissions:
+      - "core.fly"
+      - "core.stables"
+  hrac:
+    prefix: "&7[Hráč] "
+    permissions:
+      - "core.stables"
+      
+players:
+  # Zde se budou ukladat UUID hracu a jejich role
+  # d29f8f... : "admin"

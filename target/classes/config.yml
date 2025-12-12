@@ -1,0 +1,26 @@
+# SuperSurvivalCore - HardRP Config
+
+roleplay:
+  chat-range: 15.0 # Pro šeptání/křičení (pokud bychom někdy přidali)
+  local-ooc-range: 8.0
+  jump-delay: 800 # v milisekundách (0.8s)
+
+needs:
+  thirst-loss-per-minute: 0.8
+  sleep-loss-per-minute: 0.5
+  toilet-gain-per-minute: 0.6
+
+weights:
+  default: 0.1
+  # Zde si pak doplníš materiály
+  STONE: 1.0
+  OAK_LOG: 2.0
+  ANVIL: 50.0
+  NETHERITE_CHESTPLATE: 8.0
+
+currency:
+  model-data:
+    copper: 1001
+    silver: 1002
+    gold: 1003
+    check: 1004

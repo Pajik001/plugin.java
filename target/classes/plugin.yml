@@ -1,0 +1,40 @@
+name: SuperSurvivalCore
+version: 1.2
+main: cz.tvojejmeno.core.Main
+api-version: 1.21
+commands:
+  char:
+    description: Správa postavy
+  ck:
+    description: Character Kill systém
+    permission: core.admin
+  revive:
+    description: Oživení hráče
+  lock:
+    description: Zamkne dveře/truhlu
+  unlock:
+    description: Odemkne dveře/truhlu
+  key:
+    description: Správa klíčů (přidat kamaráda)
+  f:
+    description: Systém frakcí
+  eco:
+    description: Admin ekonomika
+  zvire:
+    description: Správa zvířat
+  ukazatlicence:
+    description: Ukáže tvé licence okolí
+  core:
+    description: Admin nástroje (NPC, reload)
+    permission: core.admin
+  mobdrop:
+    description: Nastavení dropů
+    permission: core.admin
+  adminitems:
+    description: Získání speciálních itemů (Pouta, Holub...)
+    permission: core.admin
+  poop:
+    description: Potřeba toalety
+  weight:
+    description: Správa váhy itemů
+    permission: core.admin
