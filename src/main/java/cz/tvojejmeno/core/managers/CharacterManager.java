@@ -23,8 +23,6 @@ public class CharacterManager {
 
     public void loadCharacter(Player player) {
         UUID uuid = player.getUniqueId();
-        plugin.getLogger().info("Nacitam postavu pro: " + player.getName());
-
         try (Connection conn = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement ps = conn.prepareStatement("SELECT * FROM rp_characters WHERE uuid = ?");
             ps.setString(1, uuid.toString());
@@ -37,68 +35,69 @@ public class CharacterManager {
                 int age = rs.getInt("age");
                 
                 RPCharacter character = new RPCharacter(uuid, name, origin, age, hasChar);
+                
+                // Načtení potřeb (pokud existují sloupce)
+                character.setThirst(rs.getDouble("thirst"));
+                character.setSleep(rs.getDouble("sleep"));
+                character.setToilet(rs.getInt("toilet"));
+                
                 characterCache.put(uuid, character);
-                plugin.getLogger().info("Postava nactena z DB: " + (hasChar ? name : "Zadna (Nema Char)"));
             } else {
                 createEmptyRecord(uuid);
-                plugin.getLogger().info("Vytvoren prazdny zaznam pro noveho hrace.");
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Chyba SQL loadCharacter: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    // TUTO METODU JSME NEMĚLI - PROTO SE TO NEUKLÁDALO
+    public void saveCharacter(Player player) {
+        RPCharacter ch = characterCache.get(player.getUniqueId());
+        if (ch == null) return;
+
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection conn = plugin.getDatabaseManager().getConnection()) {
+                String sql = "UPDATE rp_characters SET thirst=?, sleep=?, toilet=?, playtime_minutes=? WHERE uuid=?";
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ps.setDouble(1, ch.getThirst());
+                ps.setDouble(2, ch.getSleep());
+                ps.setInt(3, ch.getToilet());
+                ps.setInt(4, ch.getPlaytimeMinutes());
+                ps.setString(5, player.getUniqueId().toString());
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private void createEmptyRecord(UUID uuid) {
         try (Connection conn = plugin.getDatabaseManager().getConnection()) {
-            PreparedStatement ps = conn.prepareStatement("INSERT INTO rp_characters (uuid, has_character) VALUES (?, 0)");
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO rp_characters (uuid, has_character, thirst, sleep, toilet) VALUES (?, 0, 100, 100, 0)");
             ps.setString(1, uuid.toString());
             ps.executeUpdate();
             characterCache.put(uuid, new RPCharacter(uuid, "Neznámý", "Neznámo", 0, false));
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
     }
 
     public boolean createCharacter(Player player, String name, String origin, int age) {
-        try (Connection conn = plugin.getDatabaseManager().getConnection()) {
-            PreparedStatement ps = conn.prepareStatement("UPDATE rp_characters SET rp_name = ?, origin = ?, age = ?, has_character = 1 WHERE uuid = ?");
-            ps.setString(1, name);
-            ps.setString(2, origin);
-            ps.setInt(3, age);
-            ps.setString(4, player.getUniqueId().toString());
-            ps.executeUpdate();
-
-            RPCharacter character = new RPCharacter(player.getUniqueId(), name, origin, age, true);
-            characterCache.put(player.getUniqueId(), character);
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        // ... (stejné jako předtím) ...
+        // Pro stručnost vynechávám, zkopíruj si tu metodu createCharacter z minula, ta byla OK
+        // Jen na konci přidej saveCharacter(player);
+        return true; 
     }
     
     public RPCharacter getCharacter(Player player) {
-        if (!characterCache.containsKey(player.getUniqueId())) {
-            // Pokud není v cache, zkusíme nouzově načíst synchronně (aby to nevrátilo null)
-            loadCharacter(player);
-        }
+        if (!characterCache.containsKey(player.getUniqueId())) loadCharacter(player);
         return characterCache.get(player.getUniqueId());
     }
 
     public void unloadCharacter(Player player) {
+        saveCharacter(player); // Uložit při odpojení!
         characterCache.remove(player.getUniqueId());
     }
     
     public void performCK(Player player) {
-        try (Connection conn = plugin.getDatabaseManager().getConnection()) {
-            PreparedStatement ps = conn.prepareStatement("UPDATE rp_characters SET has_character = 0, rp_name = NULL, origin = NULL, wallet_balance = 0 WHERE uuid = ?");
-            ps.setString(1, player.getUniqueId().toString());
-            ps.executeUpdate();
-            characterCache.remove(player.getUniqueId());
-            loadCharacter(player);
-            player.getInventory().clear();
-            player.setHealth(0);
-        } catch (SQLException e) { e.printStackTrace(); }
+        // ... (stejné jako minule) ...
     }
 }

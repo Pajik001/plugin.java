@@ -72,6 +72,26 @@ public class FactionCommand implements CommandExecutor {
             player.sendMessage("§eTato funkce vyžaduje přesné zacílení frakce (WIP).");
             return true;
         }
+        // /f setrank <Frakce> <Hráč> <Role>
+        if (sub.equals("setrank")) {
+            if (args.length < 4) {
+                player.sendMessage("§cPoužití: /f setrank <Frakce> <Hráč> <Role>");
+                return true;
+            }
+            String factionName = args[1];
+            Player target = Bukkit.getPlayer(args[2]);
+            String roleName = args[3];
+
+            if (target == null) {
+                player.sendMessage("§cHráč nenalezen.");
+                return true;
+            }
+            
+            // Volání manageru
+            plugin.getFactionManager().setPlayerRole(target, factionName, roleName);
+            player.sendMessage("§aZpracovávám...");
+            return true;
+        }
 
         return true;
     }
