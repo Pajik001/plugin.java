@@ -15,7 +15,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -51,6 +50,7 @@ public class InteractionListener implements Listener {
 
         if (!thief.isSneaking()) return;
 
+        // Zde jen kontrolujeme, zda je cíl indisponován
         boolean isDowned = medicalManager.isDowned(target);
         boolean isCuffed = cuffedPlayers.containsKey(target.getUniqueId());
         
@@ -69,7 +69,7 @@ public class InteractionListener implements Listener {
         if (!(event.getEntity() instanceof Player victim) || !(event.getDamager() instanceof Player attacker)) return;
         ItemStack item = attacker.getInventory().getItemInMainHand();
 
-        if (item.getType() == Material.BLAZE_ROD) { 
+        if (item.getType() == Material.BLAZE_ROD) { // Pouta
             event.setCancelled(true); 
             if (cuffedPlayers.containsKey(victim.getUniqueId())) {
                 attacker.sendMessage("§cTento hráč už je spoután.");
@@ -79,6 +79,7 @@ public class InteractionListener implements Listener {
             victim.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, Integer.MAX_VALUE, 255));
             victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 2));
             
+            // Shazování brnění (aby nemohl bojovat)
             for (ItemStack armor : victim.getInventory().getArmorContents()) {
                 if (armor != null && armor.getType() != Material.AIR) {
                     if (victim.getInventory().firstEmpty() != -1) victim.getInventory().addItem(armor);
@@ -89,7 +90,7 @@ public class InteractionListener implements Listener {
             attacker.sendMessage("§aSpoutal jsi hráče " + victim.getName());
             victim.sendMessage("§cBYL JSI SPOUTÁN!");
         }
-        else if (item.getType() == Material.TRIAL_KEY) {
+        else if (item.getType() == Material.TRIAL_KEY) { // Klíč k poutům
             event.setCancelled(true);
             if (cuffedPlayers.containsKey(victim.getUniqueId())) {
                 uncuff(victim);
@@ -111,10 +112,12 @@ public class InteractionListener implements Listener {
         if (cuffedPlayers.containsKey(victim.getUniqueId())) {
             UUID copUUID = cuffedPlayers.get(victim.getUniqueId());
             Player cop = Bukkit.getPlayer(copUUID);
+            // Pokud policista odejde/zmizí, pouta se povolí
             if (cop == null || !cop.isOnline() || cop.isDead()) {
                 uncuff(victim); 
                 return;
             }
+            // Tahání hráče za sebou (vodítko)
             if (victim.getLocation().distance(cop.getLocation()) > 5) {
                 victim.teleport(cop.getLocation());
             }
@@ -126,18 +129,11 @@ public class InteractionListener implements Listener {
         cuffedPlayers.remove(event.getPlayer().getUniqueId());
     }
 
-    // --- 3. DOWNED STATE ---
-    @EventHandler
-    public void onFatalDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
-        if (player.getHealth() - event.getFinalDamage() <= 0) {
-            if (medicalManager.isDowned(player)) return; 
-            event.setCancelled(true);
-            medicalManager.setDowned(player);
-        }
-    }
+    // --- 3. DOWNED STATE --- 
+    // ODSTRANĚNO: Tato logika byla přesunuta do MedicalListener.java, 
+    // aby nedocházelo k duplicitám a chybám.
 
-    // --- 4. ZÁMKY ---
+    // --- 4. ZÁMKY (Lockpicking) ---
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
@@ -149,15 +145,16 @@ public class InteractionListener implements Listener {
         if (block.getBlockData() instanceof Openable || block.getType() == Material.CHEST || block.getType() == Material.BARREL) {
             if (lockManager.isLocked(block)) {
                 if (!lockManager.canAccess(player, block)) {
+                    // Lockpicking logika
                     if (item != null) {
-                        if (item.getType() == Material.TRIPWIRE_HOOK) {
+                        if (item.getType() == Material.TRIPWIRE_HOOK) { // Šperhák
                             event.setCancelled(true);
-                            startLockpicking(player, block, 10, 80);
+                            startLockpicking(player, block, 10, 80); // 10s, 80% fail chance
                             return;
                         }
-                        if (item.getType() == Material.HEAVY_CORE) {
+                        if (item.getType() == Material.HEAVY_CORE) { // Beranidlo
                             event.setCancelled(true);
-                            startLockpicking(player, block, 5, 0);
+                            startLockpicking(player, block, 5, 0); // 5s, 0% fail chance
                             return;
                         }
                     }

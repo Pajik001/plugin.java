@@ -3,6 +3,8 @@ package cz.tvojejmeno.core;
 import cz.tvojejmeno.core.commands.*;
 import cz.tvojejmeno.core.listeners.*;
 import cz.tvojejmeno.core.managers.*;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -10,6 +12,7 @@ public class Main extends JavaPlugin {
 
     private static Main instance;
 
+    // Managers
     private DatabaseManager databaseManager;
     private CharacterManager characterManager;
     private CurrencyManager currencyManager;
@@ -24,19 +27,21 @@ public class Main extends JavaPlugin {
     private FactionManager factionManager;
     private FolderManager folderManager;
     private BountyManager bountyManager;
-    
-    // NOVÉ
     private ChatBubbleManager chatBubbleManager;
     private NeedsManager needsManager;
     private CKManager ckManager;
+    private GunManager gunManager;
 
     @Override
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
 
+        // 1. Inicializace Managerů (Pořadí je důležité)
         this.databaseManager = new DatabaseManager(this);
-        this.characterManager = new CharacterManager(this);
+        this.characterManager = new CharacterManager(this); // Načítá postavy
+        this.needsManager = new NeedsManager(this); // Potřeby (musí mít přístup k postavám)
+        
         this.currencyManager = new CurrencyManager(this);
         this.backpackManager = new BackpackManager(this);
         this.dropManager = new DropManager(this);
@@ -49,18 +54,16 @@ public class Main extends JavaPlugin {
         this.factionManager = new FactionManager(this);
         this.folderManager = new FolderManager(this);
         this.bountyManager = new BountyManager(this);
-        
         this.chatBubbleManager = new ChatBubbleManager(this);
-        this.needsManager = new NeedsManager(this);
         this.ckManager = new CKManager(this);
+        this.gunManager = new GunManager();
 
+        // 2. Registrace Listenerů
         PluginManager pm = getServer().getPluginManager();
-        pm.registerEvents(new InteractionListener(this), this); // Opravený constructor
+        pm.registerEvents(new InteractionListener(this), this);
         pm.registerEvents(new FactionListener(this), this);
         pm.registerEvents(new MedicalListener(this), this);
         pm.registerEvents(new CustomItemListener(this), this);
-        
-        // ... (Zbytek registrací listenerů) ...
         pm.registerEvents(new PlayerConnectionListener(this), this);
         pm.registerEvents(new ChatListener(this), this);
         pm.registerEvents(new WalletListener(this), this);
@@ -76,17 +79,47 @@ public class Main extends JavaPlugin {
         pm.registerEvents(new BountyListener(this), this);
         pm.registerEvents(new DeathListener(this), this);
 
-        // COMMANDS
+        // 3. Registrace Příkazů
         InteractionCommand intCmd = new InteractionCommand(this);
-        if (getCommand("lock") != null) getCommand("lock").setExecutor(intCmd);
-        if (getCommand("unlock") != null) getCommand("unlock").setExecutor(intCmd);
-        if (getCommand("key") != null) getCommand("key").setExecutor(intCmd);
-        if (getCommand("revive") != null) getCommand("revive").setExecutor(intCmd);
+        registerCmd("lock", intCmd);
+        registerCmd("unlock", intCmd);
+        registerCmd("key", intCmd);
+        registerCmd("revive", intCmd);
         
-        if (getCommand("char") != null) getCommand("char").setExecutor(new CharacterCommand(this));
-        if (getCommand("f") != null) getCommand("f").setExecutor(new FactionCommand(this));
+        registerCmd("char", new CharacterCommand(this));
+        registerCmd("f", new FactionCommand(this));
+        registerCmd("eco", new EconomyCommand(this));
+        registerCmd("zvire", new AnimalCommand(this));
+        registerCmd("ukazatlicence", new LicenseCommand(this));
+        registerCmd("core", new NPCCommand());
+        registerCmd("mobdrop", new DropCommand(dropManager));
+        registerCmd("adminitems", new AdminItemsCommand(this));
         
-        // ... (Zbytek příkazů) ...
+        RPCommands rpCmd = new RPCommands(this);
+        registerCmd("me", rpCmd);
+        registerCmd("do", rpCmd);
+        registerCmd("poop", rpCmd); 
+        
+        // 4. Spuštění smyčky pro potřeby
+        startNeedsLoop();
+
+        getLogger().info("§aSuperSurvivalCore zapnut!");
+    }
+
+    private void registerCmd(String name, org.bukkit.command.CommandExecutor executor) {
+        if (getCommand(name) != null) {
+            getCommand(name).setExecutor(executor);
+        } else {
+            getLogger().warning("Chyba: Příkaz '" + name + "' není v plugin.yml!");
+        }
+    }
+
+    private void startNeedsLoop() {
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (needsManager != null) needsManager.tick(p);
+            }
+        }, 20L, 20L);
     }
 
     @Override
@@ -111,4 +144,7 @@ public class Main extends JavaPlugin {
     public BountyManager getBountyManager() { return bountyManager; }
     public FolderManager getFolderManager() { return folderManager; }
     public ShopManager getShopManager() { return shopManager; }
+    public GunManager getGunManager() { return gunManager; }
+
+
 }

@@ -20,60 +20,43 @@ public class FactionCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return true;
 
-        if (args.length == 0) return false;
+        if (args.length == 0) {
+            player.sendMessage("§ePoužití: /f <create/addrole/setrank>");
+            return true;
+        }
         String sub = args[0].toLowerCase();
 
-        // --- ADMIN: CREATE FACTION ---
+        // --- CREATE ---
         if (sub.equals("create")) {
-            if (!player.hasPermission("core.admin")) {
-                player.sendMessage("§cPouze admin může zakládat frakce.");
-                return true;
-            }
+            if (!player.hasPermission("core.admin")) return true;
             if (args.length < 2) {
                 player.sendMessage("§cPoužití: /f create <Název>");
                 return true;
             }
-            String name = args[1];
-            plugin.getFactionManager().createFaction(name, player);
-            player.sendMessage("§aFrakce " + name + " založena.");
+            plugin.getFactionManager().createFaction(args[1], player);
+            player.sendMessage("§aFrakce založena.");
             return true;
         }
 
-        // --- ADMIN: DEFINE ROLE ---
+        // --- ADD ROLE ---
         if (sub.equals("addrole")) {
             if (!player.hasPermission("core.admin")) return true;
-            // /f addrole <Frakce> <Role> <Limit> <Priorita>
             if (args.length < 5) {
                 player.sendMessage("§cPoužití: /f addrole <Frakce> <Role> <Limit> <Priorita>");
                 return true;
             }
-            String facName = args[1];
-            String roleName = args[2];
-            int limit = Integer.parseInt(args[3]);
-            int prio = Integer.parseInt(args[4]);
-
-            plugin.getFactionManager().createCustomRole(facName, roleName, limit, prio);
-            player.sendMessage("§aRole přidána.");
-            return true;
-        }
-
-        // --- BOSS: SET RANK (Povýšení) ---
-        if (sub.equals("setrank")) {
-            // Zde by měla být kontrola, zda je hráč šéfem frakce (isBoss)
-            if (args.length < 3) {
-                player.sendMessage("§cPoužití: /f setrank <Hráč> <Role>");
-                return true;
+            try {
+                plugin.getFactionManager().createCustomRole(args[1], args[2], Integer.parseInt(args[3]), Integer.parseInt(args[4]));
+                player.sendMessage("§aRole přidána.");
+            } catch (NumberFormatException e) {
+                player.sendMessage("§cČísla jsou špatně.");
             }
-            Player target = Bukkit.getPlayer(args[1]);
-            String role = args[2];
-            // Frakci si systém zjistí podle toho, kde je 'sender'
-            // Pro jednoduchost zde natvrdo předpokládáme název (v reálu bys musel poslat i název frakce nebo si ho zjistit)
-            // plugin.getFactionManager().setPlayerRole(target, "Policie", role); 
-            player.sendMessage("§eTato funkce vyžaduje přesné zacílení frakce (WIP).");
             return true;
         }
-        // /f setrank <Frakce> <Hráč> <Role>
+
+        // --- SET RANK (Opraveno) ---
         if (sub.equals("setrank")) {
+            // /f setrank <Frakce> <Hráč> <Role>
             if (args.length < 4) {
                 player.sendMessage("§cPoužití: /f setrank <Frakce> <Hráč> <Role>");
                 return true;
@@ -86,10 +69,10 @@ public class FactionCommand implements CommandExecutor {
                 player.sendMessage("§cHráč nenalezen.");
                 return true;
             }
-            
-            // Volání manageru
+
+            // Voláme manager (ten by měl kontrolovat i duplicity rolí jako 2x Boss)
             plugin.getFactionManager().setPlayerRole(target, factionName, roleName);
-            player.sendMessage("§aZpracovávám...");
+            player.sendMessage("§aPožadavek odeslán (zkontroluj konzoli pro chyby DB).");
             return true;
         }
 

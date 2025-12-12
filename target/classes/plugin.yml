@@ -38,3 +38,7 @@ commands:
   weight:
     description: Správa váhy itemů
     permission: core.admin
+  me:
+    description: Roleplay akce
+  do:
+      description: Roleplay popis
